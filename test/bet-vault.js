@@ -45,7 +45,7 @@ describe("BetVault placing bids", () => {
   });
   it("Cannot place new bets when there is a bet for that user already", async function () {
 
-    await expect(betVault.connect(address1).placeBid(3000, {value: ethers.utils.parseEther('1')})).to.be.revertedWith("Already placed a bid");
+    await expect(betVault.connect(address1).placeBid(3000, {value: ethers.utils.parseEther('1')})).to.be.revertedWith("Address already placed a bid");
   });
   it("Another user can place a new bid", async function () {
     await betVault.connect(address2).placeBid(3000, {value: ethers.utils.parseEther('0.5')});
@@ -65,43 +65,6 @@ describe("BetVault closing bets", () => {
     let lastBlockTime = await ethers.provider.getBlock("latest");
     lastBlockTime = lastBlockTime.timestamp;
     betVault = await BetVault.deploy(priceOracle, lastBlockTime+10, lastBlockTime+11);
-  });
-  it("Cannot assess price before bidding period is finished", async function () {
-    await betVault.connect(address1).placeBid(3000, {value: ethers.utils.parseEther('1')});
-    await betVault.connect(address2).placeBid(3500, {value: ethers.utils.parseEther('0.5')});
-
-    await expect(betVault.assesPrice()).to.be.revertedWith("It's not yet time to check prices");
-  });
-  it("Assess price", async function () {
-    await betVault.connect(address1).placeBid(3000, {value: ethers.utils.parseEther('1')});
-    await betVault.connect(address2).placeBid(3500, {value: ethers.utils.parseEther('0.5')});
-    await mineNBlocks(11);
-    await betVault.assesPrice();
-    const price = await betVault.priceFromOracle(); //299996245016
-
-    expect(price.toNumber()).to.equal(2999);
-  });
-  it("Select a winner (1 winner)", async function () {
-    await betVault.connect(address1).placeBid(3000, {value: ethers.utils.parseEther('1')});
-    await betVault.connect(address2).placeBid(3500, {value: ethers.utils.parseEther('0.5')});
-    await betVault.connect(address3).placeBid(4000, {value: ethers.utils.parseEther('0.5')});
-    await mineNBlocks(11);
-    await betVault.assesPrice();
-    await betVault.checkWhoWon();
-    const winnersCount  = await betVault.winnersCount();
-
-    expect(winnersCount).to.equal(1);
-  });
-  it("Select a winner (2 got the same bid)", async function () {
-    await betVault.connect(address1).placeBid(3000, {value: ethers.utils.parseEther('1')});
-    await betVault.connect(address2).placeBid(3500, {value: ethers.utils.parseEther('0.5')});
-    await betVault.connect(address3).placeBid(3000, {value: ethers.utils.parseEther('0.5')});
-    await mineNBlocks(11);
-    await betVault.assesPrice();
-    await betVault.checkWhoWon();
-    const winnersCount  = await betVault.winnersCount();
-
-    expect(winnersCount).to.equal(2);
   });
   it("Withdraw reward (1 user)", async function () {
     await betVault.connect(address1).placeBid(2900, {value: ethers.utils.parseEther('1')});

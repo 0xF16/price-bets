@@ -11,7 +11,6 @@ contract BetVault {
         uint256 bidPrice;
         uint256 bidCollateral;
     }
-    enum Status {WIP, AWAITING_WITHDRAWAL, CLOSED}
     uint256 MAX_UINT = 2**256 - 1;
 
     AggregatorV3Interface internal priceFeed;
@@ -20,9 +19,8 @@ contract BetVault {
 
     mapping(address => Bet) public bets;
     address[] public bidders;
-    Status private status;
-    uint256 public priceFromOracle;
-    address[] public winners;
+
+    event Winner(address, uint256);
 
     constructor(address _priceFeed, uint256 _biddingTimeEnd, uint256 _endTime) {
         require(_biddingTimeEnd <= _endTime, "Bidding time must be before whole bid ends");
@@ -30,26 +28,21 @@ contract BetVault {
         biddingTimeEnd = _biddingTimeEnd;
         endTime = _endTime;
         priceFeed = AggregatorV3Interface(_priceFeed);
-        status = Status.WIP;
     }
 
     function placeBid(uint256 _bidPrice) external payable {
-        require(bets[msg.sender].active == false, "Already placed a bid");
+        require(bets[msg.sender].active == false, "Address already placed a bid");
         require(block.timestamp < biddingTimeEnd, "Too late to place a bid");
         bets[msg.sender] = Bet(true, _bidPrice, msg.value);
         bidders.push(msg.sender);
     }
 
-    function assesPrice() external {
-        require(status == Status.WIP, "Price already fetched");
-        require(block.timestamp > endTime, "It's not yet time to check prices");
+    function getAssetPrice() internal view returns (uint256) {
         (uint256 _priceFromOracle, uint8 decimals) = getLatestPrice();
-        priceFromOracle = _priceFromOracle/uint256(10**decimals);
-        status = Status.AWAITING_WITHDRAWAL;
+        return _priceFromOracle/uint256(10**decimals);
     }
 
-    function checkWhoWon() external {
-        require(status == Status.AWAITING_WITHDRAWAL, "Assess the price of an asset first");
+    function checkWhoWon(uint256 _assetPrice) internal view returns (address[] memory) {
         uint256 bestDiff = MAX_UINT;
         uint256 bestBid;
         uint256 n_best_bids;
@@ -57,10 +50,10 @@ contract BetVault {
         for(uint256 i; i < bidders.length; i++) {
             uint256 _diff;
             uint256 bid = bets[bidders[i]].bidPrice;
-            if (bid > priceFromOracle) {
-                _diff = bid - priceFromOracle;
-            } else if (bid <= priceFromOracle) {
-                _diff = priceFromOracle - bid;
+            if (bid > _assetPrice) {
+                _diff = bid - _assetPrice;
+            } else if (bid <= _assetPrice) {
+                _diff = _assetPrice - bid;
             }
 
             if(_diff < bestDiff) {
@@ -81,26 +74,23 @@ contract BetVault {
                 j++;
             }
         }
-        winners = bestBidders;
+        return bestBidders;
     }
 
-    function withdrawal() external {
-        uint256 reward = address(this).balance/winners.length;
-        for(uint256 i; i < winners.length; i++) {
-            (bool success, ) = winners[i].call{value: reward}("");
+    function withdraw(address[] memory _winners) internal returns (uint256) {
+        uint256 reward = address(this).balance/_winners.length;
+        for(uint256 i; i < _winners.length; i++) {
+            (bool success, ) = _winners[i].call{value: reward}("");
             require(success, "Failed to send reward to one of the addresses");
         }
-        status = Status.CLOSED;
+        return _winners.length;
     }
 
-    function close() external {
-        if(status == Status.WIP) this.assesPrice();
-        this.checkWhoWon();
-        this.withdrawal();
-    }
-
-    function winnersCount() external view returns (uint256) {
-        return winners.length;
+    function close() external returns (uint256) {
+        require(endTime < block.timestamp, "It is not yet time to validate results" );
+        uint256 assetPrice = getAssetPrice();
+        address[] memory winners = checkWhoWon(assetPrice);
+        return withdraw(winners);
     }
 
     function getLatestPrice() internal view returns (uint256, uint8) {
