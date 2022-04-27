@@ -14,6 +14,8 @@ Someone deploys the contract and then different users place bets. In the constru
 
 # To Do
 
-- [ ] simplify smart-contract code
+- [x] simplify smart-contract code
 - [x] make all the necessary tests
 - [ ] accept different collateral types
+- [ ] rebuild by using minimal proxy
+- [ ] accept votes in "commit-reveal" scheme, so no one can see what the bets are
