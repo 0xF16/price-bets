@@ -16,13 +16,13 @@ describe("BetVault contract deployment", () => {
   });
   it("Cannot deploy a vault with bidding that ends before whole session end", async function () {
 
-    await expect(BetVault.deploy(priceOracle, 1650884797, 1650884796)).to.be.rejectedWith("Bidding time must be before whole bid ends");
+    await expect(BetVault.deploy(priceOracle, 1650884797, 1650884796)).to.be.revertedWith("Bidding time must be before whole bid ends");
   });
 
   it("Cannot deploy a vault with time that already passed", async function () {
     const lastBlockTime : number = await (await ethers.provider.getBlock("latest")).timestamp;
 
-    await expect(BetVault.deploy(priceOracle, lastBlockTime-10, lastBlockTime+10)).to.be.rejectedWith("Bidding must end after now");
+    await expect(BetVault.deploy(priceOracle, lastBlockTime-10, lastBlockTime+10)).to.be.revertedWith("Bidding must end after now");
   });
 });
 
@@ -45,7 +45,7 @@ describe("BetVault placing bids", () => {
   });
   it("Cannot place new bets when there is a bet for that user already", async function () {
 
-    await expect(betVault.connect(address1).placeBid(3000, {value: parseEther('1')})).to.be.rejectedWith("Address already placed a bid");
+    await expect(betVault.connect(address1).placeBid(3000, {value: parseEther('1')})).to.be.revertedWith("Address already placed a bid");
   });
   it("Another user can place a new bid", async function () {
     await betVault.connect(address2).placeBid(3000, {value: parseEther('0.5')});
