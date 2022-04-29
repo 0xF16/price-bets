@@ -1,9 +1,10 @@
-const hre = require("hardhat");
+import { Contract, ContractFactory } from "ethers";
+import { ethers } from "hardhat";
 
 async function main() {
   // We get the contract to deploy
-  const BetVault = await hre.ethers.getContractFactory("BetVault");
-  const betVault = await BetVault.deploy('0x7f8847242a530E809E17bF2DA5D2f9d2c4A43261', 1651011900, 1651011900);
+  const BetVault : ContractFactory = await ethers.getContractFactory("BetVault");
+  const betVault : Contract = await BetVault.deploy('0x7f8847242a530E809E17bF2DA5D2f9d2c4A43261', 1651011900, 1651011900);
 
   await betVault.deployed();
 
