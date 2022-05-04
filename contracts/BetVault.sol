@@ -1,7 +1,6 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.0;
 
-// import "hardhat/console.sol";
 import "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 
 contract BetVault {
@@ -11,7 +10,8 @@ contract BetVault {
         uint256 bidPrice;
         uint256 bidCollateral;
     }
-    uint256 MAX_UINT = 2**256 - 1;
+    address private factory;
+    uint256 private MAX_UINT = 2**256 - 1;
 
     AggregatorV3Interface internal priceFeed;
     uint256 public biddingTimeEnd;
@@ -22,7 +22,12 @@ contract BetVault {
 
     event Winner(address, uint256);
 
-    constructor(address _priceFeed, uint256 _biddingTimeEnd, uint256 _endTime) {
+    constructor() {
+        factory = address(0xdead); //flag to ensure we cannot do anything on the factory smart-contract
+    }
+
+    function initialize(address _priceFeed, uint256 _biddingTimeEnd, uint256 _endTime) external {
+        require(factory == address(0), "FORBIDDEN");
         require(_biddingTimeEnd <= _endTime, "Bidding time must be before whole bid ends");
         require(_biddingTimeEnd > block.timestamp, "Bidding must end after now");
         biddingTimeEnd = _biddingTimeEnd;
