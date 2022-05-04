@@ -57,9 +57,9 @@ describe("BetVault placing bids", () => {
     BetVaultFactory = await ethers.getContractFactory("BetVaultFactory");
     betVaultFactory = await BetVaultFactory.deploy(betVault.address);
 
-    let vaultAddress : string = await betVaultFactory.callStatic.createVault(priceOracle, lastBlockTime+10, lastBlockTime+20);
-    await betVaultFactory.createVault(priceOracle, lastBlockTime+10, lastBlockTime+20);
-    betVaultCopy = await ethers.getContractAt("BetVault", vaultAddress);
+    let vaultAddress : string = await betVaultFactory.callStatic.createVault(priceOracle, lastBlockTime+10, lastBlockTime+20); //calling this just so I know what will be the address (result) of a function bellow, as seems like I cannot get returned values from ethers on write transactions
+    await betVaultFactory.createVault(priceOracle, lastBlockTime+10, lastBlockTime+20); //executing function on-chain
+    betVaultCopy = await ethers.getContractAt("BetVault", vaultAddress); //assigning the values so I can use the contract later in the tests
   });
   it("Can place bids", async function () {
     await betVaultCopy.connect(address1).placeBid(3000, {value: parseEther('1')});
